@@ -1,15 +1,15 @@
-import { cb, defaultErrCallback, now, policyAccepted, protocol } from "./utils";
+import * as utils from "./utils";
 import WebSocket from "ws";
 
 export async function upload(config, userCallbacks, urlPromise) {
     const callbacks = {
-        error: cb("error", userCallbacks, defaultErrCallback),
-        start: cb("uploadStart", userCallbacks),
-        measurement: cb("uploadMeasurement", userCallbacks),
-        complete: cb("uploadComplete", userCallbacks),
+        error: utils.cb("error", userCallbacks, utils.defaultErrCallback),
+        start: utils.cb("uploadStart", userCallbacks),
+        measurement: utils.cb("uploadMeasurement", userCallbacks),
+        complete: utils.cb("uploadComplete", userCallbacks),
     };
 
-    if (!policyAccepted(config)) {
+    if (!utils.policyAccepted(config)) {
         callbacks.error("The M-Lab data policy is applicable and the user " +
             "has not explicitly accepted that data policy.");
         return;
@@ -24,8 +24,10 @@ export async function upload(config, userCallbacks, urlPromise) {
     const url = urls["///ndt/v7/upload"];
     return new Promise((resolve, reject) => {
         // Make sure the promise is resolved after the timeout.
-        setTimeout(resolve, 12000);
-        const sock = new WebSocket(url, protocol);
+        setTimeout(() => {
+            resolve(1);
+        }, utils.defaultTimeout);
+        const sock = new WebSocket(url, utils.subProtocol);
 
         console.log("upload");
         let closed = false;
@@ -33,7 +35,7 @@ export async function upload(config, userCallbacks, urlPromise) {
         sock.onopen = function () {
             const initialMessageSize = 8192; /* (1<<13) = 8kBytes */
             const data = new Uint8Array(initialMessageSize);
-            const start = now(); // ms since epoch
+            const start = utils.now(); // ms since epoch
             const duration = 10000; // ms
             const end = start + duration; // ms since epoch
 
@@ -51,7 +53,7 @@ export async function upload(config, userCallbacks, urlPromise) {
         sock.onmessage = function (ev) {
             if (typeof ev.data !== "undefined") {
                 callbacks.measurement({
-                    ServerData: JSON.parse(ev.data)
+                    ServerData: JSON.parse(ev.data.toString())
                 });
             }
         };
@@ -99,7 +101,7 @@ export async function upload(config, userCallbacks, urlPromise) {
          * @param {*} total
          */
         function uploader(data, start, end, previous, total) {
-            const t = now();
+            const t = utils.now();
             if (t >= end) {
                 sock.close();
                 // send one last measurement, resolve the promise and return.
@@ -150,7 +152,7 @@ export async function upload(config, userCallbacks, urlPromise) {
             // bytes sent - bytes buffered = bytes actually sent
             const numBytes = total - bufferedAmount;
             // ms / 1000 = seconds
-            const elapsedTime = (now() - start) / 1000;
+            const elapsedTime = (utils.now() - start) / 1000;
             // bytes * bits/byte * megabits/bit * 1/seconds = Mbps
             const meanMbps = numBytes * 8 / 1000000 / elapsedTime;
             callbacks.measurement({

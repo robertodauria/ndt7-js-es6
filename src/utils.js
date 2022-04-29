@@ -3,7 +3,8 @@ export const staticMetadata = {
     "client_library_version": "0.1.0",
 };
 
-export const protocol = "net.measurementlab.ndt.v7";
+export const subProtocol = "net.measurementlab.ndt.v7";
+export const defaultTimeout = 12000;
 
 /**
  * Checks whether the user has accepted the data policy, or the policy is

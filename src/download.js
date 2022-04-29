@@ -1,15 +1,15 @@
-import { cb, defaultErrCallback, policyAccepted, protocol } from "./utils";
+import * as utils from "./utils";
 import WebSocket from "ws";
 
 export async function download(config, userCallbacks, urlPromise) {
     const callbacks = {
-        error: cb("error", userCallbacks, defaultErrCallback),
-        start: cb("downloadStart", userCallbacks),
-        measurement: cb("downloadMeasurement", userCallbacks),
-        complete: cb("downloadComplete", userCallbacks),
+        error: utils.cb("error", userCallbacks, utils.defaultErrCallback),
+        start: utils.cb("downloadStart", userCallbacks),
+        measurement: utils.cb("downloadMeasurement", userCallbacks),
+        complete: utils.cb("downloadComplete", userCallbacks),
     };
 
-    if (!policyAccepted(config)) {
+    if (!utils.policyAccepted(config)) {
         callbacks.error("The M-Lab data policy is applicable and the user " +
             "has not explicitly accepted that data policy.");
         return;
@@ -31,13 +31,15 @@ export async function download(config, userCallbacks, urlPromise) {
         now = () => Date.now();
     }
 
-    // Wrap the upload logic into a Promise that isn't fulfilled until either
+    // Wrap the download logic into a Promise that isn't fulfilled until either
     // the upload has completed successful, the timeout has elapsed or an error
     // has occurred.
     return new Promise((resolve, reject) => {
         // Make sure the promise is resolved after the timeout.
-        setTimeout(resolve, 12000);
-        const sock = new WebSocket(url, protocol);
+        setTimeout(() => {
+            resolve(1);
+        }, utils.defaultTimeout);
+        const sock = new WebSocket(url, utils.subProtocol);
 
         let start = now();
         let previous = start;
