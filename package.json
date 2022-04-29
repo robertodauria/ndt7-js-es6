@@ -5,7 +5,7 @@
     "main": "dist/ndt7.js",
     "module": "dist/ndt7.js",
     "scripts": {
-        "build": "rollup src/ndt7.js --file dist/ndt7.js --format umd --name ndt7",
+        "build": "rollup src/ndt7.js --config rollup.config.js",
         "browserstack": "cp src/*.min.js src/test/e2e/ && ./run_browserstack.sh"
     },
     "repository": {
