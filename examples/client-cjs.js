@@ -1,4 +1,5 @@
 /* eslint-env node */
+// This example shows how to use the ndt7-js library as a CommonJS module in NodeJS.
 const ndt7 = require("../dist/ndt7.js");
 
 ndt7.run({

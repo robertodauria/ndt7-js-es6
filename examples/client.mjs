@@ -1,3 +1,5 @@
+/* eslint-env es2021 */
+// This example shows how to use the ndt7-js library as an ES6 module in NodeJS.
 import ndt7 from "../dist/ndt7.js";
 
 ndt7.run({
