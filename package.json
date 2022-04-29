@@ -1,0 +1,43 @@
+{
+    "name": "@m-lab/ndt7",
+    "version": "0.1.0",
+    "description": "NDT7 client for measuring networks",
+    "main": "dist/ndt7.js",
+    "module": "dist/ndt7.js",
+    "scripts": {
+        "build": "rollup src/ndt7.js --file dist/ndt7.js --format umd --name ndt7",
+        "test": "mocha src/test && cp src/*.min.js src/test/e2e/ && testcafe chrome:headless,firefox:headless src/test/e2e/test.js --app \"node src/test/e2e/server.js\"",
+        "coverage": "nyc --reporter=lcovonly  --file=coverage.cov --reporter=text npm run test",
+        "lint": "eslint --ext .js src/",
+        "document": "jsdoc2md --files=src/ndt7.js --template README.template.md > README.md",
+        "browserstack": "cp src/*.min.js src/test/e2e/ && ./run_browserstack.sh"
+    },
+    "repository": {
+        "type": "git",
+        "url": "github.com/m-lab/ndt7-js"
+    },
+    "keywords": [
+        "network",
+        "measurement",
+        "bbr",
+        "ndt",
+        "ndt7"
+    ],
+    "author": "Measurement Lab",
+    "license": "Apache-2.0",
+    "engines": {
+        "node": ">=12"
+    },
+    "devDependencies": {
+        "eslint": "^7.2.0",
+        "rollup": "^2.70.2",
+        "typescript": "^4.6.3"
+    },
+    "files": [
+        "src/**/*"
+    ],
+    "dependencies": {
+        "node-fetch": "^3.2.4",
+        "ws": "^8.5.0"
+    }
+}
