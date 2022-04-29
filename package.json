@@ -6,10 +6,6 @@
     "module": "dist/ndt7.js",
     "scripts": {
         "build": "rollup src/ndt7.js --file dist/ndt7.js --format umd --name ndt7",
-        "test": "mocha src/test && cp src/*.min.js src/test/e2e/ && testcafe chrome:headless,firefox:headless src/test/e2e/test.js --app \"node src/test/e2e/server.js\"",
-        "coverage": "nyc --reporter=lcovonly  --file=coverage.cov --reporter=text npm run test",
-        "lint": "eslint --ext .js src/",
-        "document": "jsdoc2md --files=src/ndt7.js --template README.template.md > README.md",
         "browserstack": "cp src/*.min.js src/test/e2e/ && ./run_browserstack.sh"
     },
     "repository": {
@@ -30,8 +26,7 @@
     },
     "devDependencies": {
         "eslint": "^7.2.0",
-        "rollup": "^2.70.2",
-        "typescript": "^4.6.3"
+        "rollup": "^2.70.2"
     },
     "files": [
         "src/**/*"
