@@ -41,18 +41,18 @@ export async function uploadFromURL(config, userCallbacks, urlPromise) {
 
     const url = urls["///ndt/v7/upload"];
     return new Promise((resolve, reject) => {
-        // Make sure the promise is rejected if we reach the timeout and the
-        // promise is still pending. This should never happen.
-        let timeout = setTimeout(() => {
-            reject("timeout");
-        }, utils.defaultTimeout);
-        const sock = new WebSocket(url, utils.subProtocol);
-
-        let closed = false;
         let lastClientMeasurement = {};
         let lastServerMeasurement = {};
 
         let doneSending = false;
+
+        const sock = new WebSocket(url, utils.subProtocol);
+
+        // Make sure the promise is rejected if we reach the timeout and the
+        // promise is still pending. This should never happen.
+        let timeout = setTimeout(() => {
+            reject("timeout");
+        }, utils.defaultTimeout);       
 
         sock.onopen = function () {
             const initialMessageSize = 8192; /* (1<<13) = 8kBytes */
@@ -85,9 +85,6 @@ export async function uploadFromURL(config, userCallbacks, urlPromise) {
         // if the socket is closed by the server. Measurements collected so far
         // are still valid.
         sock.onclose = function () {
-            if (!closed) {
-                closed = true;
-            }
             // If the server closed the socket, we aren't done sending data.
             // This makes sure the complete callback is only called once.
             if (!doneSending) {
@@ -96,6 +93,7 @@ export async function uploadFromURL(config, userCallbacks, urlPromise) {
                     LastServerMeasurement: lastServerMeasurement,
                 });
             }
+            clearTimeout(timeout);
             resolve(0);
         };
 

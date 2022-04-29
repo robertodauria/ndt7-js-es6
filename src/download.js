@@ -54,6 +54,15 @@ export async function downloadFromURL(config, userCallbacks, urlPromise) {
     // the upload has completed successful, the timeout has elapsed or an error
     // has occurred.
     return new Promise((resolve, reject) => {
+        let start = utils.now();
+        let previous = start;
+        let total = 0;
+
+        let lastClientMeasurement = {};
+        let lastServerMeasurement = {};
+
+        let doneReceiving = false;
+
         const sock = new WebSocket(url, utils.subProtocol);
 
         // After the expected measurement duration, close the socket, compute
@@ -74,15 +83,6 @@ export async function downloadFromURL(config, userCallbacks, urlPromise) {
             resolve(0);
         }, 10000);
 
-        let start = utils.now();
-        let previous = start;
-        let total = 0;
-
-        let lastClientMeasurement = {};
-        let lastServerMeasurement = {};
-
-        let doneReceiving = false;
-
         sock.onopen = function () {
             start = utils.now();
             previous = start;
@@ -95,7 +95,7 @@ export async function downloadFromURL(config, userCallbacks, urlPromise) {
         sock.onmessage = function (ev) {
             total +=
                 (typeof ev.data.size !== "undefined") ? ev.data.size : ev.data.length;
-            // Perform a client-side measurement 4 times per second.
+            // Perform a client-side measurement 4 times per second at most.
             const t = utils.now();
             const every = 250; // ms
             if (t - previous > every) {
