@@ -1,7 +1,25 @@
 import * as utils from "./utils";
+import { discoverServerURLs } from "./locate";
 import WebSocket from "ws";
 
-export async function upload(config, userCallbacks, urlPromise) {
+/**
+ * upload runs an ndt7 upload test using the passed-in configuration
+ * object and the provided callbacks. If a server is not specified in the
+ * config, it will be discovered automatically via the Locate API.
+ * 
+ * @param {Object} config - An associative array of configuration strings
+ * @param {Object} userCallbacks
+ * 
+ * @returns {Promise<number>} - A promise that will resolve to the test's
+ * exit code.
+ * 
+ */
+export async function upload(config, userCallbacks) {
+    const urlPromise = discoverServerURLs(config, userCallbacks);
+    return uploadFromURL(config, userCallbacks, urlPromise);
+}
+
+export async function uploadFromURL(config, userCallbacks, urlPromise) {
     const callbacks = {
         error: utils.cb("error", userCallbacks, utils.defaultErrCallback),
         start: utils.cb("uploadStart", userCallbacks),
@@ -23,14 +41,18 @@ export async function upload(config, userCallbacks, urlPromise) {
 
     const url = urls["///ndt/v7/upload"];
     return new Promise((resolve, reject) => {
-        // Make sure the promise is resolved after the timeout.
-        setTimeout(() => {
-            resolve(1);
+        // Make sure the promise is rejected if we reach the timeout and the
+        // promise is still pending. This should never happen.
+        let timeout = setTimeout(() => {
+            reject("timeout");
         }, utils.defaultTimeout);
         const sock = new WebSocket(url, utils.subProtocol);
 
-        console.log("upload");
         let closed = false;
+        let lastClientMeasurement = {};
+        let lastServerMeasurement = {};
+
+        let doneSending = false;
 
         sock.onopen = function () {
             const initialMessageSize = 8192; /* (1<<13) = 8kBytes */
@@ -52,19 +74,29 @@ export async function upload(config, userCallbacks, urlPromise) {
         // message received from the server during the upload measurement.
         sock.onmessage = function (ev) {
             if (typeof ev.data !== "undefined") {
+                lastServerMeasurement = JSON.parse(ev.data.toString());
                 callbacks.measurement({
-                    ServerData: JSON.parse(ev.data.toString())
+                    ServerData: lastServerMeasurement,
                 });
             }
         };
 
-        // onclose calls the complete callback when the upload is complete.
+        // onclose calls the complete callback and resolves the promise early 
+        // if the socket is closed by the server. Measurements collected so far
+        // are still valid.
         sock.onclose = function () {
             if (!closed) {
                 closed = true;
             }
-            callbacks.complete({});
-            resolve(1);
+            // If the server closed the socket, we aren't done sending data.
+            // This makes sure the complete callback is only called once.
+            if (!doneSending) {
+                callbacks.complete({
+                    LastClientMeasurement: lastClientMeasurement,
+                    LastServerMeasurement: lastServerMeasurement,
+                });
+            }
+            resolve(0);
         };
 
         sock.onerror = function (ev) {
@@ -103,10 +135,17 @@ export async function upload(config, userCallbacks, urlPromise) {
         function uploader(data, start, end, previous, total) {
             const t = utils.now();
             if (t >= end) {
+                doneSending = true;
                 sock.close();
-                // send one last measurement, resolve the promise and return.
+                // send one last measurement, call the complete callback,
+                // resolve the promise and return.
                 postClientMeasurement(total, sock.bufferedAmount, start);
-                resolve(1);
+                callbacks.complete({
+                    LastClientMeasurement: lastClientMeasurement,
+                    LastServerMeasurement: lastServerMeasurement,
+                });
+                clearTimeout(timeout);
+                resolve(0);
                 return;
             }
 
@@ -155,12 +194,13 @@ export async function upload(config, userCallbacks, urlPromise) {
             const elapsedTime = (utils.now() - start) / 1000;
             // bytes * bits/byte * megabits/bit * 1/seconds = Mbps
             const meanMbps = numBytes * 8 / 1000000 / elapsedTime;
+            lastClientMeasurement = {
+                ElapsedTime: elapsedTime,
+                NumBytes: numBytes,
+                MeanClientMbps: meanMbps,
+            };
             callbacks.measurement({
-                ClientData: {
-                    ElapsedTime: elapsedTime,
-                    NumBytes: numBytes,
-                    MeanClientMbps: meanMbps,
-                },
+                ClientData: lastClientMeasurement,
             });
         }
     });
